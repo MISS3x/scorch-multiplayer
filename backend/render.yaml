@@ -5,7 +5,7 @@ services:
     rootDir: backend
     plan: free # Change to 'starter' or 'standard' if you need more power/no sleep
     region: frankfurt # Deploying close for lowest latency
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
