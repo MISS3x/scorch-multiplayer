@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>INK ARTILLERY</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="game-container">
+        <!-- Virtual Cursor -->
+        <div id="virtual-cursor"></div>
+
+        <!-- Main Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="global-health-bars" class="health-container">
+            <!-- Injected via JS -->
+        </div>
+
+        <!-- Main Menu -->
+        <div id="main-menu" class="overlay">
+            <h1><span
+                    style="font-size: 0.8rem; vertical-align: middle; opacity: 0.6; margin-right: 15px;">v0.8.18</span>INK
+                ARTILLERY </h1>
+            <div class="menu-controls"
+                style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom: 20px;">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <span style="font-size: 1.2rem; font-weight: bold;">Robots:</span>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button id="b-down" tabindex="0">&lt;</button>
+                        <span id="bot-count" style="font-size: 1.5rem; min-width: 30px; text-align: center;">0</span>
+                        <button id="b-up" tabindex="0">&gt;</button>
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <span style="font-size: 1.2rem; font-weight: bold;">Players:</span>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button id="p-down" tabindex="0">&lt;</button>
+                        <span id="player-count" style="font-size: 1.5rem; min-width: 30px; text-align: center;">2</span>
+                        <button id="p-up" tabindex="0">&gt;</button>
+                    </div>
+                </div>
+                <canvas id="map-preview" width="300" height="150"
+                    style="border: 4px solid #000; background: #fff; margin-top: 10px; margin-bottom: 10px;"></canvas>
+            </div>
+            <button id="start-btn" tabindex="0" class="pixel-btn-large">START BATTLE</button>
+        </div>
+
+        <!-- HUD Overlay -->
+        <div id="hud" class="overlay hidden">
+            <div id="debug-bar">
+                <button id="toggle-debug">🛠️ TEST DISASTERS</button>
+                <div id="debug-content" class="hidden">
+                    <div class="debug-section">
+                        <h3>TORNADO CONFIG</h3>
+                        <div class="debug-params">
+                            <label>ROCK DEPTH: <input type="number" id="debug-tornado-rock" value="0" min="0" max="50"
+                                    step="0.1"></label>
+                            <label>DIRT DEPTH: <input type="number" id="debug-tornado-dirt" value="0" min="0" max="50"
+                                    step="0.1"></label>
+                            <label>SAND DEL %: <input type="number" id="debug-tornado-sand" value="0" min="0" max="100"
+                                    step="1">%</label>
+                        </div>
+                    </div>
+                    <div class="debug-disasters-grid" id="debug-buttons">
+                        <!-- Buttons will be injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="touch-controls" class="hidden">
+                <button id="btn-ok" tabindex="0" class="fire-btn">FIRE !</button>
+                <div class="touch-actions">
+                    <button id="btn-wpn" tabindex="0">🎒 WEAPON</button>
+                    <button id="btn-move" tabindex="0">🏃 MOVE</button>
+                    <button id="btn-items" tabindex="0">📦 ITEMS</button>
+                </div>
+            </div>
+
+            <div id="remote-hints-hud" class="hidden"
+                style="position:absolute; top: 15%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px; border: 2px solid #fff; border-radius: 5px; font-size: 0.6rem; text-align: center; z-index: 1000; pointer-events: none;">
+                <b>TV REMOTE:</b><br>[2][4][6][8] Aim/Power<br>[5] Shoot<br>[1] Weapon | [3] Move | [0] Reload
+            </div>
+
+            <div id="weapon-popup"
+                style="position: absolute; top: 50%; right: 5%; transform: translateY(-50%); font-size: 2.5rem; color: white; text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: right; z-index: 2000; font-family: 'Press Start 2P', monospace;">
+                Weapon Name</div>
+
+            <!-- Turn Timer -->
+            <div id="turn-timer-ui"
+                style="position: absolute; top: 10%; right: 50%; transform: translateX(50%); font-size: 4rem; color: white; text-shadow: 4px 4px 0 #000; pointer-events: none; z-index: 3000; font-family: 'Press Start 2P', monospace;">
+                30</div>
+        </div>
+
+        <!-- Shop Overlay -->
+        <div id="shop" class="overlay hidden">
+            <div class="overlay-content">
+                <h2>SHOP - <span id="shop-player-name">Player 1</span></h2>
+                <div class="money-display">$$$: <span id="shop-money">0</span></div>
+                <div id="shop-items" class="shop-grid">
+                    <!-- Injected via JS -->
+                </div>
+                <div class="shop-buttons-container">
+                    <button id="random-buy-btn" tabindex="0">Buy Random</button>
+                    <button id="sell-btn" tabindex="0">Sell Item</button>
+                    <button id="next-shop-btn" tabindex="0">Next / Start</button>
+                </div>
+                <button id="buy-all-random-btn" tabindex="0">BUY RANDOM FOR ALL PLAYERS</button>
+            </div>
+        </div>
+
+        <!-- Round Summary Overlay -->
+        <div id="round-summary" class="overlay hidden">
+            <h1 id="winner-text">Player X Wins!</h1>
+            <div id="leaderboard"></div>
+            <button id="to-shop-btn" tabindex="0">Continue to Shop</button>
+        </div>
+
+        <!-- Disasters Alert -->
+        <div id="disaster-alert" class="overlay hidden alert-text">
+            <span>WARNING</span>
+        </div>
+        <!-- Restart Dialog -->
+        <div id="restart-dialog" class="overlay hidden">
+            <div class="dialog-box">
+                <h2>RESTART MATCH?</h2>
+                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+                    <button id="restart-yes" tabindex="0">YES</button>
+                    <button id="restart-no" tabindex="0">NO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio & Display Controls (Always Visible) -->
+        <div id="audio-controls"
+            style="position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 5000; pointer-events: auto;">
+            <button id="btn-fullscreen" tabindex="0">🗖</button>
+            <button id="btn-mute" tabindex="0">🔊</button>
+            <button id="btn-next" tabindex="0">⏭️</button>
+        </div>
+    </div>
+
+    <script>
+        // Force clear cookies/storage on load as requested
+        localStorage.clear();
+        sessionStorage.clear();
+
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            alert("GAME ERROR:\n" + msg + "\nLine: " + lineNo);
+            return false;
+        };
+
+        // Restart logic
+        document.getElementById('restart-no').onclick = () => {
+            document.getElementById('restart-dialog').classList.add('hidden');
+        };
+        document.getElementById('restart-yes').onclick = () => {
+            window.location.reload();
+        };
+    </script>
+    <script src="game.js"></script>
+</body>
+
+</html>

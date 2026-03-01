@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: scorch-colyseus-backend
+    env: node
+    plan: free # Change to 'starter' or 'standard' if you need more power/no sleep
+    region: frankfurt # Deploying close for lowest latency
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render dynamically assigns a port, and process.env.PORT will be set.
+      # Our Express/Colyseus server is already configured to read process.env.PORT

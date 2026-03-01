@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>INK ARTILLERY - DEBUG MODE</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #fee; overflow: auto; } 
+        #log { position: fixed; bottom: 0; left: 0; width: 100%; height: 150px; background: rgba(0,0,0,0.9); color: lime; font-family: monospace; overflow-y: scroll; z-index: 9999; padding: 10px; font-size: 14px; user-select: text; pointer-events: auto; }
+        #debug-controls { position: fixed; bottom: 160px; left: 10px; z-index: 10000; display: flex; gap: 10px; }
+        
+        /* Force 3-column grid for shop items */
+        .shop-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 5px;
+            max-height: 50vh;
+            overflow-y: auto;
+            background: #fff;
+            border: 2px solid #000;
+            padding: 5px;
+        }
+        
+        .shop-item { border: 1px solid #ccc; padding: 2px; font-size: 10px; display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+        .shop-item:hover { background: #eee; }
+    </style>
+</head>
+<body>
+    <div id="debug-controls">
+        <button onclick="copyLog()">📋 COPY LOG</button>
+        <button onclick="clearLog()">🗑️ CLEAR</button>
+    </div>
+    <div id="log">DEBUG LOG STARTED...<br></div>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="global-health-bars" class="health-container"></div>
+        <div id="main-menu" class="overlay">
+            <h1>DEBUG MENU</h1>
+            <button id="p-down">-</button> <span id="player-count">2</span> <button id="p-up">+</button>
+            <br><br>
+            <button id="start-btn" onclick="tryStart()">ATTEMPT START</button>
+            <canvas id="map-preview" width="300" height="150" style="border: 2px solid red;"></canvas>
+        </div>
+        <div id="hud" class="overlay hidden">
+            <div class="hud-top">
+                <div id="player-info">
+                    <h2 id="current-player-name">Player</h2>
+                    <div class="stats"><span id="player-hp">HP</span> <span id="player-money">$</span> <span id="player-fuel">Fuel</span> <span id="player-shield">Shield</span> <span id="player-power">Pow</span> <span id="player-angle">Ang</span></div>
+                </div>
+                <div id="weapon-info"><div id="current-weapon-name">Wpn</div></div>
+            </div>
+        </div>
+
+        <div id="shop" class="overlay hidden">
+            <h2>SHOP - <span id="shop-player-name">Player</span></h2>
+            <div class="money-display">$$$: <span id="shop-money">0</span></div>
+            
+            <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                <button id="next-shop-btn" style="background:red; color:white; font-size:20px;">>>> NEXT PLAYER / START <<<</button>
+                <button id="random-buy-btn">Buy Random</button>
+                <button id="sell-btn">Sell</button>
+            </div>
+
+            <div id="shop-items" class="shop-grid" style="border: 2px solid blue; min-height: 200px;"></div> 
+        </div>
+
+        <div id="round-summary" class="overlay hidden">SUMMARY... <h1 id="winner-text"></h1> <div id="leaderboard"></div> <button id="to-shop-btn">SHOP</button></div>
+        <div id="disaster-alert" class="overlay hidden"><span>ALERT</span></div>
+    </div>
+
+    <script>
+        function log(msg) {
+            let el = document.getElementById('log');
+            el.innerHTML += msg + "<br>";
+            el.scrollTop = el.scrollHeight;
+            console.log(msg.replace(/<[^>]*>?/gm, ''));
+        }
+        function copyLog() {
+            let text = document.getElementById('log').innerText;
+            navigator.clipboard.writeText(text).then(() => alert("Log copied!")).catch(err => alert("Copy failed: " + err));
+        }
+        function clearLog() {
+            document.getElementById('log').innerHTML = "LOG CLEARED<br>";
+        }
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            log("<span style='color:red; font-weight:bold;'>ERROR: " + msg + " at line " + lineNo + "</span>");
+            return false;
+        };
+        log("Loading game.js...");
+    </script>
+    <script src="game.js"></script>
+    <script>
+        log("game.js loaded!");
+        
+        function tryStart() {
+            log("Attempting startGame()...");
+            try {
+                if (typeof startGame === 'function') {
+                    startGame();
+                    log("startGame() executed.");
+                } else {
+                    log("ERROR: startGame is not defined!");
+                }
+            } catch (e) {
+                log("CRITICAL START ERROR: " + e.message);
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

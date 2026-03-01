@@ -1,0 +1,8 @@
+# Code Watchdog Task
+# Target: Z:\MISS3 Dropbox\Server Data\printednest\Antigravity\scorch
+# Interval: ~5 minutes
+# Goal: Report significant changes (functions, UI elements)
+
+This file indicates active monitoring.
+Last check: [Pending]
+Status: Active
