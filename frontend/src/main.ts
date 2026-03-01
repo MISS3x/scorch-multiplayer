@@ -24,6 +24,7 @@ async function connectToGame() {
     });
 
     // Initialize vanilla logic after connection
+    // @ts-ignore - Bypass lack of type definition for the 5000+ line vanilla script
     await import('./game.js');
 
   } catch (e) {
