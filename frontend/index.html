@@ -23,33 +23,32 @@
             <!-- Injected via JS -->
         </div>
 
-        <!-- Main Menu -->
+        <!-- Main Menu / Multiplayer Lobby Waiting Screen -->
         <div id="main-menu" class="overlay">
             <h1><span
                     style="font-size: 0.8rem; vertical-align: middle; opacity: 0.6; margin-right: 15px;">v0.8.18</span>INK
                 ARTILLERY </h1>
+
             <div class="menu-controls"
-                style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom: 20px;">
-                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
-                    <span style="font-size: 1.2rem; font-weight: bold;">Robots:</span>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <button id="b-down" tabindex="0">&lt;</button>
-                        <span id="bot-count" style="font-size: 1.5rem; min-width: 30px; text-align: center;">0</span>
-                        <button id="b-up" tabindex="0">&gt;</button>
-                    </div>
+                style="display:flex; flex-direction:column; align-items:center; gap:20px; margin-bottom: 20px;">
+
+                <h2 id="lobby-status-text" class="blink" style="color: #ffcc00;">CONNECTING TO SERVER...</h2>
+
+                <div id="lobby-info" class="hidden"
+                    style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+                    <span style="font-size: 1.2rem; font-weight: bold;">WAITING FOR PLAYERS</span>
+                    <span id="lobby-player-count" style="font-size: 2.5rem; color: #00ff00;">1 / 4</span>
+                    <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 10px;">Game will start when host is ready...
+                    </p>
                 </div>
-                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
-                    <span style="font-size: 1.2rem; font-weight: bold;">Players:</span>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <button id="p-down" tabindex="0">&lt;</button>
-                        <span id="player-count" style="font-size: 1.5rem; min-width: 30px; text-align: center;">2</span>
-                        <button id="p-up" tabindex="0">&gt;</button>
-                    </div>
-                </div>
+
                 <canvas id="map-preview" width="300" height="150"
-                    style="border: 4px solid #000; background: #fff; margin-top: 10px; margin-bottom: 10px;"></canvas>
+                    style="border: 4px solid #000; background: #fff; margin-top: 20px; margin-bottom: 10px;"></canvas>
             </div>
-            <button id="start-btn" tabindex="0" class="pixel-btn-large">START BATTLE</button>
+
+            <!-- Hidden button to keep legacy game.js from crashing on boot -->
+            <button id="start-btn" tabindex="0" class="pixel-btn-large hidden" style="display: none;">START
+                BATTLE</button>
         </div>
 
         <!-- HUD Overlay -->
