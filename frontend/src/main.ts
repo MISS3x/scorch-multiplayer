@@ -5,12 +5,25 @@ import '../style.css';
 
 // Initialize Game Connection
 async function connectToGame() {
-  const SERVER_URL = import.meta.env.VITE_COLYSEUS_URL || "ws://localhost:2567";
-  const client = new Colyseus.Client(SERVER_URL);
+  const urlParams = new URLSearchParams(window.location.search);
+  const isDirectLobby = urlParams.has('lobby');
 
   const statusText = document.getElementById("lobby-status-text");
   const lobbyInfo = document.getElementById("lobby-info");
   const playerCountText = document.getElementById("lobby-player-count");
+
+  if (isDirectLobby) {
+    if (statusText) statusText.innerText = "STARTING MATCH...";
+    if (statusText) statusText.classList.remove("blink");
+
+    // Load game logic
+    // @ts-ignore
+    await import('./game.js');
+    return;
+  }
+
+  const SERVER_URL = import.meta.env.VITE_COLYSEUS_URL || "ws://localhost:2567";
+  const client = new Colyseus.Client(SERVER_URL);
 
   try {
     const room = await client.joinOrCreate("scorch_arena", {
@@ -37,7 +50,9 @@ async function connectToGame() {
     // Listen for state changes
     room.onStateChange((state) => {
       let activePlayers = 0;
-      state.players.forEach(() => activePlayers++);
+      if (state.players && typeof state.players.forEach === 'function') {
+        state.players.forEach(() => activePlayers++);
+      }
 
       if (playerCountText) {
         playerCountText.innerText = `${activePlayers} / 4`;

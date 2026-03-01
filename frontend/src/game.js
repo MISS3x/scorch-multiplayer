@@ -5026,3 +5026,46 @@ function loop() {
 
 // Ensure fonts loaded somewhat before first draw
 setTimeout(loop, 100);
+
+// ==========================================
+// 128moles Auto-Start Integration (LOBBY SYNC)
+// ==========================================
+(function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('lobby')) return;
+
+    let p = parseInt(urlParams.get('p')) || 1;
+    let b = parseInt(urlParams.get('b')) || 0;
+    pCount = p;
+    bCount = b;
+
+    let parsedNames = [];
+    const nParam = urlParams.get('n');
+    if (nParam) {
+        try {
+            parsedNames = JSON.parse(decodeURIComponent(nParam));
+        } catch (e) {
+            console.error("Could not parse names", e);
+        }
+    }
+
+    setTimeout(() => {
+        if (typeof window.startGame === 'function') {
+            window.startGame();
+        } else if (typeof startGame === 'function') {
+            startGame();
+        } else {
+            let startBtn = document.getElementById('start-btn');
+            if (startBtn) startBtn.click();
+        }
+
+        setTimeout(() => {
+            if (parsedNames.length > 0) {
+                for (let i = 0; i < tanks.length && i < parsedNames.length; i++) {
+                    tanks[i].name = parsedNames[i];
+                }
+            }
+        }, 50);
+
+    }, 300);
+})();
