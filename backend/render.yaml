@@ -2,6 +2,7 @@ services:
   - type: web
     name: scorch-colyseus-backend
     env: node
+    rootDir: backend
     plan: free # Change to 'starter' or 'standard' if you need more power/no sleep
     region: frankfurt # Deploying close for lowest latency
     buildCommand: npm install && npm run build
