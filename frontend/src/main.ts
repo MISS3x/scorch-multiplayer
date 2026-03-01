@@ -12,7 +12,8 @@ async function connectToGame() {
   const lobbyInfo = document.getElementById("lobby-info");
   const playerCountText = document.getElementById("lobby-player-count");
 
-  const SERVER_URL = import.meta.env.VITE_COLYSEUS_URL || "ws://localhost:2567";
+  const SERVER_URL = import.meta.env.VITE_COLYSEUS_URL ||
+    (window.location.hostname === "localhost" ? "ws://localhost:2567" : "wss://scorch-multiplayer.onrender.com");
   const client = new Colyseus.Client(SERVER_URL);
   const lobbyId = urlParams.get('lobby');
 
