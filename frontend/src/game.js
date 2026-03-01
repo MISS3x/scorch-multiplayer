@@ -3398,6 +3398,15 @@ function startGame() {
     openShop();
 }
 
+function splitmix32(a) {
+    return function () {
+        a |= 0; a = a + 0x9e3779b9 | 0;
+        var t = a ^ a >>> 16; t = Math.imul(t, 0x21f0aaad);
+        t = t ^ t >>> 15; t = Math.imul(t, 0x735a2d97);
+        return ((t = t ^ t >>> 15) >>> 0) / 4294967296;
+    }
+}
+
 function startRound() {
     console.log("Starting round...");
     // 1. Hide UI immediately
@@ -3406,6 +3415,14 @@ function startRound() {
 
     // 2. Render logic with slight delay to allow UI to update
     setTimeout(() => {
+        let oldRandom = Math.random;
+        if (window.scorchRoom && window.scorchRoom.state && window.scorchRoom.state.mapSeed) {
+            Math.random = splitmix32(window.scorchRoom.state.mapSeed);
+            console.log("Using deterministic Map Seed:", window.scorchRoom.state.mapSeed);
+        } else {
+            console.log("Using non-deterministic local map generation.");
+        }
+
         try {
             generateMap();
             projectiles = [];
@@ -3423,6 +3440,8 @@ function startRound() {
         } catch (e) {
             console.error("Critical error starting round:", e);
             alert("Error starting round: " + e.message);
+        } finally {
+            Math.random = oldRandom; // Restore immediately after all generation routines are built
         }
     }, 50);
 }
@@ -3491,7 +3510,15 @@ function passTurn() {
         }
     }
 
-    // Wind disabled
+    if (window.scorchRoom && window.scorchRoom.sessionId) {
+        let t = tanks[currentPlayerIndex];
+        if (t && t.id === window.scorchRoom.sessionId) {
+            window.scorchRoom.send("pass_turn");
+        }
+        return; // Let the server's state change handle the actual transition
+    }
+
+    // Local fallback
     advancePlayerIndex();
 }
 
@@ -4454,10 +4481,29 @@ function fireProjectile() {
     let t = tanks[currentPlayerIndex];
 
     if (window.scorchRoom && window.scorchRoom.sessionId && t.id === window.scorchRoom.sessionId) {
-        window.scorchRoom.send("fire", { angle: t.angle, power: t.power });
+        window.scorchRoom.send("fire", { angle: t.angle, power: t.power, weaponIndex: t.weaponIndex });
+        return; // Multiplayer: let the server echo this back to everyone including us!
     }
 
+    // Local fallback if no multiplayer room
+    executeFire(t);
+}
+
+window.executeRemoteFire = function (data) {
+    let t = tanks.find(x => x.id === data.playerId);
+    if (t) {
+        currentPlayerIndex = tanks.indexOf(t);
+        t.angle = data.angle;
+        t.power = data.power;
+        t.weaponIndex = data.weaponIndex;
+        executeFire(t);
+    }
+}
+
+function executeFire(t) {
     let w = t.inventory[t.weaponIndex];
+    if (!w) w = WEAPONS[0];
+
     t.shotsFired++;
 
     let bx = t.x + Math.cos(t.angle) * 15;
@@ -4551,7 +4597,6 @@ function fireProjectile() {
 
     gameState = 'FIRING';
     physicsSettleFrames = 0;
-    // Removed uiHud.classList.add('hidden') per request to keep controls visible
 }
 
 function update() {
@@ -5099,3 +5144,9 @@ setTimeout(loop, 100);
     }
     // Auto-start logic is now handled correctly via Colyseus state waiting in main.ts
 })();
+
+Object.defineProperty(window, 'tanks', { get: () => tanks, set: (v) => tanks = v });
+Object.defineProperty(window, 'currentPlayerIndex', { get: () => currentPlayerIndex, set: (v) => currentPlayerIndex = v });
+Object.defineProperty(window, 'gameState', { get: () => gameState, set: (v) => gameState = v });
+window.advancePlayerIndex = advancePlayerIndex;
+window.startGameFromMultiplayer = startGame;

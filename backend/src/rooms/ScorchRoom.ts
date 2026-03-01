@@ -24,6 +24,14 @@ export class ScorchRoom extends Room<ScorchState> {
       }
     });
 
+    this.onMessage("update_aim", (client, data) => {
+      const player = this.state.players.get(client.sessionId);
+      if (player && this.state.activePlayerId === client.sessionId) {
+        player.angle = data.angle;
+        player.power = data.power;
+      }
+    });
+
     this.onMessage("fire", (client, data) => {
       if (this.state.phase !== "playing") return;
       if (this.state.activePlayerId !== client.sessionId) return;
@@ -32,7 +40,26 @@ export class ScorchRoom extends Room<ScorchState> {
       if (player) {
         player.angle = data.angle;
         player.power = data.power;
-        // The server would normally calc physically trajectory here, we'll start migrating logic later
+      }
+
+      // Tell everyone to execute the fire logic identically using deterministic lockstep
+      this.broadcast("fire", {
+        playerId: client.sessionId,
+        angle: data.angle,
+        power: data.power,
+        weaponIndex: data.weaponIndex
+      });
+    });
+
+    this.onMessage("pass_turn", (client, data) => {
+      // The active client tells the server their physics has visually settled
+      if (this.state.activePlayerId === client.sessionId) {
+        const pKeys = Array.from(this.state.players.keys());
+        let currentIndex = pKeys.indexOf(this.state.activePlayerId);
+        let nextIndex = (currentIndex + 1) % pKeys.length;
+
+        // Skip dead players - basic logic, frontend will enforce too
+        this.state.activePlayerId = pKeys[nextIndex];
       }
     });
   }

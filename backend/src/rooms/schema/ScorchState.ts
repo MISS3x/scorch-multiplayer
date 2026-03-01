@@ -26,6 +26,7 @@ export class ScorchState extends Schema {
   @type("string") phase: string = "lobby"; // lobby, playing, gameover
   @type("string") activePlayerId: string = "";
   @type("number") wind: number = 0;
+  @type("number") mapSeed: number = 0;
 
   // Representing the destructible terrain heightmap simply as an array of Y heights.
   @type(["number"]) terrainHeights = new ArraySchema<number>();

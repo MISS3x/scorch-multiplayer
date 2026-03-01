@@ -16,12 +16,9 @@ async function connectToGame() {
   const client = new Colyseus.Client(SERVER_URL);
   const lobbyId = urlParams.get('lobby');
 
-  if (isDirectLobby) {
-    if (statusText) statusText.innerText = "CONNECTING TO MATCH...";
-    if (statusText) statusText.classList.remove("blink");
-
-    // TEMPORARY OFFLINE BYPASS: Render Colyseus backend is not yet deployed.
-    // We launch into Hotseat mode so the game doesn't crash trying to hit localhost:2567.
+  // Only skip connecting if we explicitly don't pass lobby and want local dev
+  if (isDirectLobby && !lobbyId) {
+    if (statusText) statusText.innerText = "STARTING LOCAL MATCH...";
     // @ts-ignore
     await import('./game.js');
     return;
@@ -92,6 +89,30 @@ async function connectToGame() {
           (window as any).gameStarted = true;
           (window as any).startGameFromMultiplayer();
         }
+      }
+
+      // Update turn active player based on Server State
+      if (state.activePlayerId && (window as any).tanks) {
+        let tk = (window as any).tanks.find((t: any) => t.id === state.activePlayerId);
+        if (tk) {
+          let idx = (window as any).tanks.indexOf(tk);
+          if (idx !== -1 && (window as any).currentPlayerIndex !== idx && (window as any).gameState !== 'SHOP') {
+            (window as any).currentPlayerIndex = idx;
+            let advance = (window as any).advancePlayerIndex;
+            if (advance && typeof advance === 'function') {
+              // Trigger visual advance but ensure the ID matches via brute force if needed
+              (window as any).currentPlayerIndex = idx - 1;
+              if ((window as any).currentPlayerIndex < 0) (window as any).currentPlayerIndex = (window as any).tanks.length - 1;
+              advance();
+            }
+          }
+        }
+      }
+    });
+
+    room.onMessage("fire", (data: any) => {
+      if (typeof (window as any).executeRemoteFire === 'function') {
+        (window as any).executeRemoteFire(data);
       }
     });
 
