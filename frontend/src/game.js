@@ -1365,6 +1365,16 @@ class Tank {
         }
         if (sourceTank && sourceTank !== this) {
             sourceTank.money += Math.floor(amt);
+
+            // Send scorch points back to 128moles ecosystem via the injected ID tracking
+            if (sourceTank.userId) {
+                let lobbyId = new URLSearchParams(window.location.search).get('lobby');
+                fetch('https://128moles.vercel.app/api/scorch/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: sourceTank.userId, pointsEarned: Math.ceil(amt), lobbyId: lobbyId })
+                }).catch(err => console.log('Score track offline:', err));
+            }
         }
         if (this.hp <= 0 && this.alive) {
             this.hp = 0; this.alive = false;
@@ -3345,6 +3355,9 @@ function startGame() {
             } else {
                 t.name = p.name || "Player " + (i + 1);
             }
+            if (window.scorchParsedIds && window.scorchParsedIds[i]) {
+                t.userId = window.scorchParsedIds[i];
+            }
             if (p.color) t.color = p.color;
             tanks.push(t);
             i++;
@@ -3365,6 +3378,9 @@ function startGame() {
             let t = new Tank(i, false);
             if (window.scorchParsedNames && window.scorchParsedNames[i]) {
                 t.name = window.scorchParsedNames[i];
+            }
+            if (window.scorchParsedIds && window.scorchParsedIds[i]) {
+                t.userId = window.scorchParsedIds[i];
             }
             tanks.push(t);
         }
@@ -5066,6 +5082,17 @@ setTimeout(loop, 100);
         try {
             parsedNames = JSON.parse(decodeURIComponent(nParam));
             window.scorchParsedNames = parsedNames;
+        } catch (e) {
+            console.error("Could not parse names", e);
+        }
+    }
+
+    let parsedIds = [];
+    const uParam = urlParams.get('u');
+    if (uParam) {
+        try {
+            parsedIds = JSON.parse(decodeURIComponent(uParam));
+            window.scorchParsedIds = parsedIds;
         } catch (e) {
             console.error("Could not parse names", e);
         }
