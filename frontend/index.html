@@ -46,9 +46,8 @@
                     style="border: 4px solid #000; background: #fff; margin-top: 20px; margin-bottom: 10px;"></canvas>
             </div>
 
-            <!-- Hidden button to keep legacy game.js from crashing on boot -->
-            <button id="start-btn" tabindex="0" class="pixel-btn-large hidden" style="display: none;">START
-                BATTLE</button>
+            <!-- Ready up button -->
+            <button id="start-btn" tabindex="0" class="pixel-btn-large">READY</button>
         </div>
 
         <!-- HUD Overlay -->
@@ -100,7 +99,8 @@
         <!-- Shop Overlay -->
         <div id="shop" class="overlay hidden">
             <div class="overlay-content">
-                <h2>SHOP - <span id="shop-player-name">Player 1</span></h2>
+                <h2>SHOP - <span id="shop-player-name">Player 1</span> (<span id="shop-timer"
+                        style="color:#ffcc00;">10</span>s)</h2>
                 <div class="money-display">$$$: <span id="shop-money">0</span></div>
                 <div id="shop-items" class="shop-grid">
                     <!-- Injected via JS -->

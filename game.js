@@ -3953,11 +3953,31 @@ function triggerSpecificDisaster(type) {
 initDebugUI();
 
 function renderShopPlayer() {
+    if (window.shopTimeLimit) clearInterval(window.shopTimeLimit); // Ensure no overlapping timers
+
     let t = tanks[currentShopPlayer];
     if (!t) {
         console.error(`[Shop] Player ${currentShopPlayer} not found! Skipping to next.`);
         document.getElementById('next-shop-btn').click();
         return;
+    }
+
+    // Setup strict 10s Timer
+    let sTime = 10;
+    let timerEl = document.getElementById('shop-timer');
+    if (timerEl) timerEl.innerText = sTime;
+
+    // Only apply timer rules if human
+    if (!t.isBot) {
+        window.shopTimeLimit = setInterval(() => {
+            sTime--;
+            if (timerEl) timerEl.innerText = sTime;
+            if (sTime <= 0) {
+                clearInterval(window.shopTimeLimit);
+                let btn = document.getElementById('next-shop-btn');
+                if (btn && !btn.disabled) btn.click();
+            }
+        }, 1000);
     }
 
     // Handle button states for Selling Mode
@@ -4116,11 +4136,40 @@ if (sellBtn) {
 let nextShopBtn = document.getElementById('next-shop-btn');
 if (nextShopBtn) {
     nextShopBtn.onclick = () => {
+        if (window.shopTimeLimit) clearInterval(window.shopTimeLimit);
+
         console.log(`[Shop] Next clicked. Current: ${currentShopPlayer}, Total: ${pCount}`);
         currentShopPlayer++;
         if (currentShopPlayer >= pCount) {
-            console.log('[Shop] All players done. Starting round.');
-            startRound();
+            console.log('[Shop] All players done. Sending payload to backend before Start Game!');
+            nextShopBtn.innerText = "SYNCING...";
+            nextShopBtn.disabled = true;
+
+            const syncPayload = {
+                lobby_id: new URLSearchParams(window.location.search).get('lobby') || 'offline',
+                players: tanks.map((tank) => ({
+                    name: tank.name,
+                    isBot: tank.isBot,
+                    money: tank.money,
+                    inventory_size: tank.inventory.length
+                })),
+                timestamp: new Date().toISOString()
+            };
+
+            // Attempt backend sync
+            fetch('https://scorch-sync.vercel.app/api/shopComplete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(syncPayload)
+            })
+                .then(res => console.log('Backend Sync Success:', res))
+                .catch(err => console.error('Backend Sync Warning (Simulated Offline):', err))
+                .finally(() => {
+                    nextShopBtn.innerText = "Next / Start";
+                    nextShopBtn.disabled = false;
+                    startRound();
+                });
+
         } else {
             console.log(`[Shop] Rendering player ${currentShopPlayer}`);
             renderShopPlayer();
@@ -4919,3 +4968,47 @@ function loop() {
 
 // Ensure fonts loaded somewhat before first draw
 setTimeout(loop, 100);
+
+// Auto-Start match from external 128moles Lobby using URL Params
+(function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('lobby')) {
+        let p = parseInt(urlParams.get('p')) || 1;
+        let b = parseInt(urlParams.get('b')) || 0;
+
+        let pCountEl = document.getElementById('player-count');
+        let bCountEl = document.getElementById('bot-count');
+        if (pCountEl) pCountEl.innerText = p;
+        if (bCountEl) bCountEl.innerText = b;
+        pCount = p;
+        bCount = b;
+
+        let parsedNames = [];
+        const nParam = urlParams.get('n');
+        if (nParam) {
+            try {
+                parsedNames = JSON.parse(decodeURIComponent(nParam));
+            } catch (e) { console.error("Could not parse names", e); }
+        }
+
+        setTimeout(() => {
+            // Force start game bypassing the menu
+            if (typeof startGame === 'function') {
+                startGame();
+            } else {
+                let startBtn = document.getElementById('start-btn');
+                if (startBtn) startBtn.click();
+            }
+
+            // Target the tank elements after start
+            setTimeout(() => {
+                if (parsedNames.length > 0) {
+                    for (let i = 0; i < tanks.length && i < parsedNames.length; i++) {
+                        tanks[i].name = parsedNames[i];
+                    }
+                }
+            }, 50);
+
+        }, 500); // 500ms allows the map preview to setup
+    }
+})();

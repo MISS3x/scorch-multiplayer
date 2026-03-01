@@ -24,6 +24,16 @@ async function connectToGame() {
     if (statusText) statusText.classList.remove("blink");
     if (lobbyInfo) lobbyInfo.classList.remove("hidden");
 
+    const startBtn = document.getElementById("start-btn") as HTMLButtonElement;
+    if (startBtn) {
+      startBtn.onclick = () => {
+        room.send("ready", true);
+        startBtn.innerText = "WAITING...";
+        startBtn.disabled = true;
+        startBtn.style.opacity = "0.5";
+      };
+    }
+
     // Listen for state changes
     room.onStateChange((state) => {
       let activePlayers = 0;
@@ -35,6 +45,10 @@ async function connectToGame() {
 
       if (state.phase === "playing") {
         if (statusText) statusText.innerText = "GAME STARTING...";
+        if (typeof (window as any).startGameFromMultiplayer === "function" && !(window as any).gameStarted) {
+          (window as any).gameStarted = true;
+          (window as any).startGameFromMultiplayer();
+        }
       }
     });
 

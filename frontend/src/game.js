@@ -32,24 +32,45 @@ let currentMapType = 'MOUNTAINS';
 let tanks = [];
 let currentPlayerIndex = 0;
 let playersTurned = 0;
-document.getElementById('p-down').onclick = () => {
-    let minP = (bCount > 0) ? 1 : 2;
-    pCount = Math.max(minP, pCount - 1);
-    updatePlayerBotCounts();
-};
-document.getElementById('p-up').onclick = () => {
-    if (pCount + bCount < 8) pCount++;
-    updatePlayerBotCounts();
-};
-document.getElementById('b-down').onclick = () => {
-    bCount = Math.max(0, bCount - 1);
-    updatePlayerBotCounts();
-};
-document.getElementById('b-up').onclick = () => {
-    if (pCount + bCount < 8) bCount++;
-    updatePlayerBotCounts();
-};
-document.getElementById('start-btn').onclick = startGame;
+let pDownBtn = document.getElementById('p-down');
+if (pDownBtn) {
+    pDownBtn.onclick = () => {
+        let minP = (bCount > 0) ? 1 : 2;
+        pCount = Math.max(minP, pCount - 1);
+        updatePlayerBotCounts();
+    };
+}
+let pUpBtn = document.getElementById('p-up');
+if (pUpBtn) {
+    pUpBtn.onclick = () => {
+        if (pCount + bCount < 8) pCount++;
+        updatePlayerBotCounts();
+    };
+}
+let bDownBtn = document.getElementById('b-down');
+if (bDownBtn) {
+    bDownBtn.onclick = () => {
+        bCount = Math.max(0, bCount - 1);
+        updatePlayerBotCounts();
+    };
+}
+let bUpBtn = document.getElementById('b-up');
+if (bUpBtn) {
+    bUpBtn.onclick = () => {
+        if (pCount + bCount < 8) bCount++;
+        updatePlayerBotCounts();
+    };
+}
+
+let startBtn = document.getElementById('start-btn');
+if (startBtn) {
+    // Only bind if we are not in multiplayer mode, we will overwrite this in main.ts if multiplayer is used
+    if (!window.scorchRoom) {
+        startBtn.onclick = startGame;
+    }
+}
+
+window.startGameFromMultiplayer = startGame;
 
 const currentWeaponNameEl = document.getElementById('current-weapon-name');
 const currentPlayerNameEl = document.getElementById('current-player-name');
@@ -771,6 +792,10 @@ window.addEventListener('keydown', e => {
     if (gameState === 'AIMING') {
         let t = tanks[currentPlayerIndex];
 
+        if (window.scorchRoom && window.scorchRoom.sessionId && t.id !== window.scorchRoom.sessionId) {
+            return;
+        }
+
         // Map TV Remote 'Back', standard 'Escape', or Numpad '3' to toggle Aim/Move
         if (e.key.toLowerCase() === 'm' || e.key === 'Backspace' || e.key === 'Escape' || e.key === '3') {
             t.actionMode = t.actionMode === 'AIMING' ? 'MOVING' : 'AIMING';
@@ -949,6 +974,11 @@ window.addEventListener('keyup', e => {
         keys['space'] = false;
         if (gameState === 'AIMING') {
             let t = tanks[currentPlayerIndex];
+
+            if (window.scorchRoom && window.scorchRoom.sessionId && t.id !== window.scorchRoom.sessionId) {
+                return;
+            }
+
             if (t.actionMode === 'AIMING') {
                 let eq = t.inventory[t.weaponIndex];
                 if (eq.isItem) {
@@ -988,6 +1018,11 @@ const bindTouchControl = (id, keyName, isAction = false) => {
         keys[keyName] = true;
         if (isAction && gameState === 'AIMING') {
             let t = tanks[currentPlayerIndex];
+
+            if (window.scorchRoom && window.scorchRoom.sessionId && t.id !== window.scorchRoom.sessionId) {
+                return;
+            }
+
             if (keyName === 'm') {
                 t.actionMode = t.actionMode === 'AIMING' ? 'MOVING' : 'AIMING';
                 sfx.playUI();
@@ -1015,6 +1050,11 @@ const bindTouchControl = (id, keyName, isAction = false) => {
 
         if (keyName === 'space' && gameState === 'AIMING') {
             let t = tanks[currentPlayerIndex];
+
+            if (window.scorchRoom && window.scorchRoom.sessionId && t.id !== window.scorchRoom.sessionId) {
+                return;
+            }
+
             if (t.actionMode === 'AIMING') {
                 let eq = t.inventory[t.weaponIndex];
                 if (eq.isItem) {
@@ -3295,8 +3335,26 @@ function startGame() {
     }
 
     tanks = [];
-    for (let i = 0; i < pCount; i++) tanks.push(new Tank(i, false));
-    for (let i = 0; i < bCount; i++) tanks.push(new Tank(pCount + i, true));
+    if (window.scorchRoom && window.scorchRoom.state && window.scorchRoom.state.players) {
+        let i = 0;
+        window.scorchRoom.state.players.forEach((p, sessionId) => {
+            let t = new Tank(i, false);
+            t.id = p.id || sessionId;
+            t.name = p.name || "Player " + (i + 1);
+            if (p.color) t.color = p.color;
+            tanks.push(t);
+            i++;
+        });
+        let currentPCount = i;
+        for (let j = 0; j < bCount; j++) {
+            let t = new Tank(currentPCount + j, true);
+            t.id = "bot_" + j;
+            tanks.push(t);
+        }
+    } else {
+        for (let i = 0; i < pCount; i++) tanks.push(new Tank(i, false));
+        for (let i = 0; i < bCount; i++) tanks.push(new Tank(pCount + i, true));
+    }
 
     uiMenu.classList.add('hidden');
     uiHud.classList.add('hidden');
@@ -3761,7 +3819,7 @@ function openShop() {
     currentShopPlayer = 0;
     isSellingMode = false;
     document.getElementById('sell-btn').innerText = "Sell Item";
-    renderShopPlayer();
+    renderShopPlayer(true);
     uiShop.classList.remove('hidden');
     gameState = 'SHOP';
 }
@@ -3952,7 +4010,7 @@ function triggerSpecificDisaster(type) {
 // Init Debug UI
 initDebugUI();
 
-function renderShopPlayer() {
+function renderShopPlayer(isNewPlayer = false) {
     let t = tanks[currentShopPlayer];
     if (!t) {
         console.error(`[Shop] Player ${currentShopPlayer} not found! Skipping to next.`);
@@ -3966,18 +4024,22 @@ function renderShopPlayer() {
     const nextBtn = document.getElementById('next-shop-btn');
     const allRandomBtn = document.getElementById('buy-all-random-btn');
 
+    let isLocalPlayer = (!window.scorchRoom || !window.scorchRoom.sessionId || t.id === window.scorchRoom.sessionId);
+
     if (isSellingMode) {
         if (sellBtn) sellBtn.innerText = "CANCEL SELLING";
         if (randomBtn) { randomBtn.disabled = true; randomBtn.classList.add('shop-item-disabled'); }
-        if (nextBtn) { nextBtn.disabled = true; nextBtn.classList.add('shop-item-disabled'); }
+        if (nextBtn) { nextBtn.disabled = !isLocalPlayer; if (!isLocalPlayer) nextBtn.classList.add('shop-item-disabled'); else nextBtn.classList.remove('shop-item-disabled'); }
         if (allRandomBtn) { allRandomBtn.disabled = true; allRandomBtn.classList.add('shop-item-disabled'); }
     } else {
-        if (sellBtn) sellBtn.innerText = "Sell Item";
-        if (randomBtn) { randomBtn.disabled = false; randomBtn.classList.remove('shop-item-disabled'); }
-        if (nextBtn) { nextBtn.disabled = false; nextBtn.classList.remove('shop-item-disabled'); }
-        if (allRandomBtn) { allRandomBtn.disabled = false; allRandomBtn.classList.remove('shop-item-disabled'); }
+        if (sellBtn) { sellBtn.innerText = "Sell Item"; sellBtn.disabled = !isLocalPlayer; }
+        if (randomBtn) { randomBtn.disabled = !isLocalPlayer; if (!isLocalPlayer) randomBtn.classList.add('shop-item-disabled'); else randomBtn.classList.remove('shop-item-disabled'); }
+        if (nextBtn) { nextBtn.disabled = !isLocalPlayer; if (!isLocalPlayer) nextBtn.classList.add('shop-item-disabled'); else nextBtn.classList.remove('shop-item-disabled'); }
+        if (allRandomBtn) { allRandomBtn.disabled = !isLocalPlayer; if (!isLocalPlayer) allRandomBtn.classList.add('shop-item-disabled'); else allRandomBtn.classList.remove('shop-item-disabled'); }
     }
     if (t.isBot) {
+        if (window.shopTimerInterval) clearInterval(window.shopTimerInterval);
+        document.getElementById('shop-timer').innerText = "BOT";
         let pool = WEAPONS.slice(1).concat(ITEMS.filter(it => it.id !== 'I4').map(it => ({ ...it, isItem: true })));
         let teleportItem = ITEMS.find(it => it.id === 'I4');
         if (teleportItem) pool.push(teleportItem);
@@ -4005,6 +4067,22 @@ function renderShopPlayer() {
     console.log(`[Shop] Rendering UI for ${t.name} (Sell Mode: ${isSellingMode})`);
     document.getElementById('shop-player-name').innerText = t.name + (isSellingMode ? " (SELLING)" : "");
     document.getElementById('shop-money').innerText = t.money;
+
+    if (isNewPlayer) {
+        if (window.shopTimerInterval) clearInterval(window.shopTimerInterval);
+        window.shopTimeLeft = 10;
+        document.getElementById('shop-timer').innerText = window.shopTimeLeft;
+        window.shopTimerInterval = setInterval(() => {
+            window.shopTimeLeft--;
+            let timerEl = document.getElementById('shop-timer');
+            if (timerEl) timerEl.innerText = window.shopTimeLeft;
+            if (window.shopTimeLeft <= 0) {
+                clearInterval(window.shopTimerInterval);
+                let btn = document.getElementById('next-shop-btn');
+                if (btn) btn.click();
+            }
+        }, 1000);
+    }
 
     let container = document.getElementById('shop-items');
     container.innerHTML = '';
@@ -4048,6 +4126,7 @@ function renderShopPlayer() {
 
             if (count > 0) {
                 div.onclick = () => {
+                    if (!isLocalPlayer) return;
                     let idxToRemove = owned.pop();
                     t.inventory.splice(idxToRemove, 1);
                     t.money += refund;
@@ -4077,6 +4156,7 @@ function renderShopPlayer() {
                 `;
 
                 div.onclick = () => {
+                    if (!isLocalPlayer) return;
                     if (t.money >= item.cost) {
                         t.money -= item.cost;
                         if (item.apply) t.inventory.push({ ...item, isItem: true });
@@ -4116,14 +4196,32 @@ if (sellBtn) {
 let nextShopBtn = document.getElementById('next-shop-btn');
 if (nextShopBtn) {
     nextShopBtn.onclick = () => {
-        console.log(`[Shop] Next clicked. Current: ${currentShopPlayer}, Total: ${pCount}`);
+        if (window.shopTimerInterval) clearInterval(window.shopTimerInterval);
+        console.log(`[Shop] Next clicked. Current: ${currentShopPlayer}, Total: ${tanks.length}`);
         currentShopPlayer++;
-        if (currentShopPlayer >= pCount) {
-            console.log('[Shop] All players done. Starting round.');
-            startRound();
+        if (currentShopPlayer >= tanks.length) {
+            console.log('[Shop] All players done. Simulating backend sync, then starting round.');
+            let prevText = nextShopBtn.innerText;
+            nextShopBtn.innerText = "SYNCING...";
+            nextShopBtn.disabled = true;
+            nextShopBtn.style.opacity = '0.5';
+
+            // Send data to backend sync (Render/Vercel simulation)
+            if (window.scorchRoom && window.scorchRoom.send) {
+                window.scorchRoom.send("shop_done", {
+                    tanks: tanks.map(t => ({ id: t.id, name: t.name, money: t.money, items: t.inventory.length }))
+                });
+            }
+
+            setTimeout(() => {
+                nextShopBtn.innerText = prevText;
+                nextShopBtn.disabled = false;
+                nextShopBtn.style.opacity = '1';
+                startRound();
+            }, 1000);
         } else {
             console.log(`[Shop] Rendering player ${currentShopPlayer}`);
-            renderShopPlayer();
+            renderShopPlayer(true);
         }
     }
 }
@@ -4317,6 +4415,11 @@ function renderHealthBars() {
 
 function fireProjectile() {
     let t = tanks[currentPlayerIndex];
+
+    if (window.scorchRoom && window.scorchRoom.sessionId && t.id === window.scorchRoom.sessionId) {
+        window.scorchRoom.send("fire", { angle: t.angle, power: t.power });
+    }
+
     let w = t.inventory[t.weaponIndex];
     t.shotsFired++;
 
@@ -4660,6 +4763,10 @@ function update() {
         }
 
         if (t.isBot) return; // Prevent user keyboard input on bot turn
+
+        if (window.scorchRoom && window.scorchRoom.sessionId && t.id !== window.scorchRoom.sessionId) {
+            return; // Multiplayer Lock
+        }
 
         let kLeft = keys['arrowleft'] || keys['a'];
         let kRight = keys['arrowright'] || keys['d'];
