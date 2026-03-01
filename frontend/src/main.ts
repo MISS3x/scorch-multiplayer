@@ -19,6 +19,12 @@ async function connectToGame() {
   if (isDirectLobby) {
     if (statusText) statusText.innerText = "CONNECTING TO MATCH...";
     if (statusText) statusText.classList.remove("blink");
+
+    // TEMPORARY OFFLINE BYPASS: Render Colyseus backend is not yet deployed.
+    // We launch into Hotseat mode so the game doesn't crash trying to hit localhost:2567.
+    // @ts-ignore
+    await import('./game.js');
+    return;
   }
 
   try {
