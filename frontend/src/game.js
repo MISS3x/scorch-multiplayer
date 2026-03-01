@@ -3340,7 +3340,11 @@ function startGame() {
         window.scorchRoom.state.players.forEach((p, sessionId) => {
             let t = new Tank(i, false);
             t.id = p.id || sessionId;
-            t.name = p.name || "Player " + (i + 1);
+            if (window.scorchParsedNames && window.scorchParsedNames[i]) {
+                t.name = window.scorchParsedNames[i];
+            } else {
+                t.name = p.name || "Player " + (i + 1);
+            }
             if (p.color) t.color = p.color;
             tanks.push(t);
             i++;
@@ -3349,11 +3353,28 @@ function startGame() {
         for (let j = 0; j < bCount; j++) {
             let t = new Tank(currentPCount + j, true);
             t.id = "bot_" + j;
+            if (window.scorchParsedNames && window.scorchParsedNames[currentPCount + j]) {
+                t.name = window.scorchParsedNames[currentPCount + j];
+            } else {
+                t.name = "Bot " + (j + 1);
+            }
             tanks.push(t);
         }
     } else {
-        for (let i = 0; i < pCount; i++) tanks.push(new Tank(i, false));
-        for (let i = 0; i < bCount; i++) tanks.push(new Tank(pCount + i, true));
+        for (let i = 0; i < pCount; i++) {
+            let t = new Tank(i, false);
+            if (window.scorchParsedNames && window.scorchParsedNames[i]) {
+                t.name = window.scorchParsedNames[i];
+            }
+            tanks.push(t);
+        }
+        for (let i = 0; i < bCount; i++) {
+            let t = new Tank(pCount + i, true);
+            if (window.scorchParsedNames && window.scorchParsedNames[pCount + i]) {
+                t.name = window.scorchParsedNames[pCount + i];
+            }
+            tanks.push(t);
+        }
     }
 
     uiMenu.classList.add('hidden');
@@ -5044,28 +5065,10 @@ setTimeout(loop, 100);
     if (nParam) {
         try {
             parsedNames = JSON.parse(decodeURIComponent(nParam));
+            window.scorchParsedNames = parsedNames;
         } catch (e) {
             console.error("Could not parse names", e);
         }
     }
-
-    setTimeout(() => {
-        if (typeof window.startGame === 'function') {
-            window.startGame();
-        } else if (typeof startGame === 'function') {
-            startGame();
-        } else {
-            let startBtn = document.getElementById('start-btn');
-            if (startBtn) startBtn.click();
-        }
-
-        setTimeout(() => {
-            if (parsedNames.length > 0) {
-                for (let i = 0; i < tanks.length && i < parsedNames.length; i++) {
-                    tanks[i].name = parsedNames[i];
-                }
-            }
-        }, 50);
-
-    }, 300);
+    // Auto-start logic is now handled correctly via Colyseus state waiting in main.ts
 })();
